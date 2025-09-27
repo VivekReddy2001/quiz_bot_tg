@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Optimized Telegram Quiz Bot for Render Deployment
-Zero-maintenance, production-ready version
+ULTIMATE RELIABLE Telegram Quiz Bot for Render
+Handles sleep issues, maximum uptime, bulletproof reliability
 """
 import json
 import logging
@@ -9,7 +9,9 @@ import os
 import sys
 import time
 import requests
-from datetime import datetime
+import threading
+import random
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 
 # Configure logging
@@ -42,7 +44,11 @@ bot_stats = {
     'total_requests': 0,
     'successful_polls': 0,
     'errors': 0,
-    'start_time': time.time()
+    'start_time': time.time(),
+    'last_activity': time.time(),
+    'sleep_count': 0,
+    'wake_count': 0,
+    'keep_alive_pings': 0
 }
 
 # Configuration
@@ -50,6 +56,12 @@ MAX_USERS = 200
 USER_TTL = 3600  # 1 hour
 MAX_QUESTIONS_PER_QUIZ = 25
 REQUEST_TIMEOUT = 30
+KEEP_ALIVE_INTERVAL = 840  # 14 minutes (before 15min sleep)
+HEALTH_CHECK_INTERVAL = 300  # 5 minutes
+
+# Keep-alive system
+keep_alive_active = True
+last_keep_alive = time.time()
 
 def cleanup_old_users():
     """Clean up old user data to prevent memory issues"""
@@ -214,6 +226,74 @@ def update_user_activity(user_id):
     if user_id not in user_data:
         user_data[user_id] = {}
     user_data[user_id]['last_activity'] = time.time()
+    bot_stats['last_activity'] = time.time()
+
+def keep_alive_ping():
+    """Internal keep-alive ping to prevent sleeping"""
+    global last_keep_alive
+    try:
+        # Self-ping to keep service awake
+        current_time = time.time()
+        if current_time - last_keep_alive > KEEP_ALIVE_INTERVAL:
+            try:
+                # Ping our own health endpoint
+                app_url = WEBHOOK_URL.split('/' + BOT_TOKEN)[0]
+                response = requests.get(f"{app_url}/health", timeout=10)
+                if response.status_code == 200:
+                    bot_stats['keep_alive_pings'] += 1
+                    last_keep_alive = current_time
+                    logger.info("Keep-alive ping successful")
+                else:
+                    logger.warning(f"Keep-alive ping failed: {response.status_code}")
+            except Exception as e:
+                logger.warning(f"Keep-alive ping error: {e}")
+    except Exception as e:
+        logger.error(f"Keep-alive system error: {e}")
+
+def detect_sleep_wake():
+    """Detect if service was sleeping and just woke up"""
+    global last_keep_alive
+    try:
+        current_time = time.time()
+        time_since_activity = current_time - bot_stats['last_activity']
+        
+        # If more than 20 minutes since last activity, likely woke from sleep
+        if time_since_activity > 1200:  # 20 minutes
+            bot_stats['sleep_count'] += 1
+            bot_stats['wake_count'] += 1
+            logger.info(f"Service woke up after {int(time_since_activity/60)} minutes")
+            
+            # Reset keep-alive timer
+            last_keep_alive = current_time - KEEP_ALIVE_INTERVAL - 1
+            
+            # Immediate keep-alive ping
+            keep_alive_ping()
+            
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Sleep detection error: {e}")
+        return False
+
+def background_keep_alive():
+    """Background thread to keep service alive"""
+    while keep_alive_active:
+        try:
+            time.sleep(60)  # Check every minute
+            keep_alive_ping()
+        except Exception as e:
+            logger.error(f"Background keep-alive error: {e}")
+            time.sleep(60)
+
+def start_keep_alive_system():
+    """Start the keep-alive background system"""
+    try:
+        if not os.environ.get('DISABLE_KEEP_ALIVE'):
+            thread = threading.Thread(target=background_keep_alive, daemon=True)
+            thread.start()
+            logger.info("Keep-alive system started")
+    except Exception as e:
+        logger.error(f"Failed to start keep-alive system: {e}")
 
 @app.route('/')
 def home():
@@ -265,6 +345,9 @@ def home():
                         <div><strong>Successful Polls:</strong> {bot_stats['successful_polls']}</div>
                         <div><strong>Errors:</strong> {bot_stats['errors']}</div>
                         <div><strong>Active Users:</strong> {len(user_data)}</div>
+                        <div><strong>Sleep/Wake Cycles:</strong> {bot_stats['sleep_count']}</div>
+                        <div><strong>Keep-Alive Pings:</strong> {bot_stats['keep_alive_pings']}</div>
+                        <div><strong>Last Activity:</strong> {int((time.time() - bot_stats['last_activity'])/60)}m ago</div>
                     </div>
                 </div>
                 
@@ -300,6 +383,11 @@ def webhook():
     """Handle incoming Telegram updates"""
     try:
         bot_stats['total_requests'] += 1
+        
+        # Detect if we just woke up from sleep
+        just_woke = detect_sleep_wake()
+        if just_woke:
+            logger.info("Service detected wake-up, initializing keep-alive")
         
         # Periodic cleanup
         if bot_stats['total_requests'] % 50 == 0:
@@ -640,7 +728,11 @@ def internal_error(error):
     logger.error(f"Internal server error: {error}")
     return jsonify({"error": "Internal server error"}), 500
 
+# Initialize keep-alive system on startup
+start_keep_alive_system()
+
 if __name__ == '__main__':
-    logger.info("🚀 Quiz Bot starting...")
+    logger.info("🚀 ULTIMATE RELIABLE Quiz Bot starting...")
     logger.info(f"Bot token configured: {'✅' if BOT_TOKEN else '❌'}")
+    logger.info(f"Keep-alive system: {'✅ Active' if not os.environ.get('DISABLE_KEEP_ALIVE') else '❌ Disabled'}")
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)

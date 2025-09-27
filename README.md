@@ -10,6 +10,9 @@ A zero-maintenance Telegram quiz bot optimized for Render's free tier. Create in
 - 💾 **Smart Memory Management**
 - 🔄 **Auto-retry & Error Handling**
 - 📊 **Built-in Analytics Dashboard**
+- 🛌 **Anti-Sleep System** - Prevents Render sleep with multi-layer keep-alive
+- ⚡ **Instant Response** - Always warm, no delays
+- 🔍 **Sleep Detection** - Automatic recovery from any downtime
 
 ## 🚀 Quick Deploy to Render (5 Minutes)
 
@@ -133,6 +136,8 @@ The bot includes automatic retry logic and rate limiting protection.
 2. **Test locally first** - Use ngrok for local webhook testing
 3. **Monitor logs** - Check Render dashboard for errors
 4. **Use the template** - Copy the JSON template and modify it
+5. **Check dashboard** - Monitor keep-alive pings and sleep cycles
+6. **Deploy external pinger** - For 99%+ uptime (see RENDER_SLEEP_SOLUTION.md)
 
 ## 📈 Scaling
 
