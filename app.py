@@ -580,6 +580,9 @@ class QuizBot:
             session.anonymous = is_anonymous
             session.state = "waiting_json"
             
+            # CRITICAL: Save the session state immediately
+            self.data_store.set(f"user:{user_id}", asdict(session), ttl=self.user_ttl)
+            
             quiz_type = "🔒 Anonymous" if is_anonymous else "👤 Non-Anonymous"
             
             # Edit message
@@ -591,7 +594,22 @@ class QuizBot:
             )
             
             # Send template
-            template = '{"all_q":[{"q":"Sample question?","o":["Option A","Option B","Option C","Option D"],"c":1,"e":"Explanation here"}]}'
+            template = '''{
+  "all_q": [
+    {
+      "q": "'Truculent' means:",
+      "o": ["Aggressive", "Genial"],
+      "c": 0,
+      "e": "Aggressive=belligerent,pugnacious"
+    },
+    {
+      "q": "'Ineffable' means:",
+      "o": ["Mundane", "Inexpressible"],
+      "c": 1,
+      "e": "Inexpressible=indescribable,unspeakable"
+    }
+  ]
+}'''
             self.send_message(chat_id, "📋 **JSON Template:**", parse_mode='Markdown')
             self.send_message(chat_id, template)
             
@@ -613,6 +631,7 @@ class QuizBot:
         """Handle JSON quiz data"""
         try:
             session = self.get_user_session(user_id)
+            logger.info(f"JSON quiz request from user {user_id}, state: {session.state}")
             if session.state != "waiting_json":
                 self.send_message(chat_id, "🔄 Please use /start first! ✨")
                 return
@@ -712,7 +731,22 @@ class QuizBot:
                 )
                 self.send_message(chat_id, status_msg, parse_mode='Markdown')
             elif text.startswith('/template'):
-                template = '{"all_q":[{"q":"What is the capital of France? 🇫🇷","o":["London","Paris","Berlin","Madrid"],"c":1,"e":"Paris is the capital and largest city of France 🗼"},{"q":"What is 2+2? 🔢","o":["3","4","5","6"],"c":1,"e":"Basic math: 2+2=4 ✅"}]}'
+                template = '''{
+  "all_q": [
+    {
+      "q": "'Truculent' means:",
+      "o": ["Aggressive", "Genial"],
+      "c": 0,
+      "e": "Aggressive=belligerent,pugnacious"
+    },
+    {
+      "q": "'Ineffable' means:",
+      "o": ["Mundane", "Inexpressible"],
+      "c": 1,
+      "e": "Inexpressible=indescribable,unspeakable"
+    }
+  ]
+}'''
                 self.send_message(chat_id, "📋 **JSON Template:**", parse_mode='Markdown')
                 self.send_message(chat_id, template)
                 self.send_message(
