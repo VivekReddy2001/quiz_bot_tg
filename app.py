@@ -1061,5 +1061,6 @@ if __name__ == '__main__':
     logger.info("Bot token configured", configured=bool(bot.bot_token))
     logger.info("Bot state", state=bot.state.value)
     logger.info("Persistent storage", enabled=bot.data_store.persistent_enabled)
+    logger.info("🔄 VERSION: 2.0 - Ultra-Reliable (Deployed: 2025-10-06)")
     
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
