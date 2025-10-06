@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: quiz-bot
+    name: quiz-bot-ultra-reliable
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --worker-class sync --worker-connections 1000 --max-requests 1000 --max-requests-jitter 100 --preload --timeout 120 --keep-alive 5 --access-logfile - --error-logfile - --log-level info app:app
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -12,3 +13,13 @@ services:
         sync: false  # This will be set manually in Render dashboard
       - key: WEBHOOK_URL
         sync: false  # This will be set manually in Render dashboard
+      - key: REDIS_URL
+        sync: false  # Optional: For persistent storage
+      - key: STORAGE_FILE
+        value: /tmp/bot_data.json
+      - key: DISABLE_KEEP_ALIVE
+        value: "false"
+      - key: GUNICORN_WORKERS
+        value: "2"
+      - key: GUNICORN_TIMEOUT
+        value: "120"
