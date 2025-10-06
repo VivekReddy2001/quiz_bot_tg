@@ -143,7 +143,7 @@ class ReliableHTTPClient:
                     **kwargs
                 )
                 return self._handle_response(response)
-            except Exception as e:
+    except Exception as e:
                 logger.error("GET request failed", endpoint=endpoint, error=str(e))
                 return None
     
@@ -164,21 +164,21 @@ class ReliableHTTPClient:
     
     def _handle_response(self, response: requests.Response) -> Optional[Dict]:
         """Handle HTTP response"""
-        if response.status_code == 200:
-            return response.json()
+            if response.status_code == 200:
+                return response.json()
         elif response.status_code == 429:
-            retry_after = int(response.headers.get('Retry-After', 1))
+                retry_after = int(response.headers.get('Retry-After', 1))
             logger.warning("Rate limited", retry_after=retry_after)
-            time.sleep(retry_after)
+                time.sleep(retry_after)
             return None
-        else:
+            else:
             logger.warning(
                 "HTTP error",
                 status_code=response.status_code,
                 text=response.text[:200]
             )
-            return None
-
+                return None
+                
 class DataStore:
     """Persistent data storage with fallback to memory"""
     
@@ -364,8 +364,8 @@ class QuizBot:
                 time.sleep(60)  # Check every minute
                 
                 if self.shutdown_event.is_set():
-                    break
-                
+            break
+            
                 current_time = time.time()
                 time_since_activity = current_time - self.stats.last_activity
                 
@@ -430,103 +430,103 @@ class QuizBot:
         else:
             logger.error("Telegram API request failed", method=method)
         
-        return None
-    
+    return None
+
     def send_message(self, chat_id: int, text: str, reply_markup: Dict = None, parse_mode: str = None) -> bool:
-        """Send message with error handling"""
-        try:
-            # Sanitize text
+    """Send message with error handling"""
+    try:
+        # Sanitize text
             text = str(text)[:4096]
-            if not text.strip():
-                text = "Empty message"
+        if not text.strip():
+            text = "Empty message"
             
-            data = {
-                'chat_id': chat_id,
-                'text': text
-            }
+        data = {
+            'chat_id': chat_id,
+            'text': text
+        }
             
-            if parse_mode:
-                data['parse_mode'] = parse_mode
-            if reply_markup:
-                data['reply_markup'] = reply_markup
+        if parse_mode:
+            data['parse_mode'] = parse_mode
+        if reply_markup:
+            data['reply_markup'] = reply_markup
             
             result = self._make_telegram_request('sendMessage', data)
-            return result is not None
+        return result is not None
             
-        except Exception as e:
+    except Exception as e:
             logger.error("Send message error", chat_id=chat_id, error=str(e))
             self.stats.errors += 1
-            return False
-    
+        return False
+
     def send_poll(self, chat_id: int, question: str, options: List[str], 
                   correct_id: int, explanation: str = None, is_anonymous: bool = True) -> bool:
-        """Send quiz poll with validation"""
-        try:
-            # Sanitize inputs
-            question = str(question)[:300]
+    """Send quiz poll with validation"""
+    try:
+        # Sanitize inputs
+        question = str(question)[:300]
             options = [str(opt)[:100] for opt in options[:10]]
+        
+        if len(options) < 2:
+            options = ["Option A", "Option B"]
             
-            if len(options) < 2:
-                options = ["Option A", "Option B"]
+        if not isinstance(correct_id, int) or correct_id < 0 or correct_id >= len(options):
+            correct_id = 0
             
-            if not isinstance(correct_id, int) or correct_id < 0 or correct_id >= len(options):
-                correct_id = 0
-            
-            data = {
-                'chat_id': chat_id,
-                'question': question,
-                'options': options,
-                'type': 'quiz',
-                'correct_option_id': correct_id,
-                'is_anonymous': is_anonymous
-            }
-            
-            if explanation:
-                data['explanation'] = str(explanation)[:200]
+        data = {
+            'chat_id': chat_id,
+            'question': question,
+            'options': options,
+            'type': 'quiz',
+            'correct_option_id': correct_id,
+            'is_anonymous': is_anonymous
+        }
+        
+        if explanation:
+            data['explanation'] = str(explanation)[:200]
             
             result = self._make_telegram_request('sendPoll', data)
-            if result:
+        if result:
                 self.stats.successful_polls += 1
-                return True
-            return False
+            return True
+        return False
             
-        except Exception as e:
+    except Exception as e:
             logger.error("Send poll error", chat_id=chat_id, error=str(e))
             self.stats.errors += 1
-            return False
-    
+        return False
+
     def answer_callback_query(self, callback_query_id: int, text: str = ""):
-        """Answer callback query"""
-        try:
-            data = {
-                'callback_query_id': callback_query_id,
-                'text': text[:200]
-            }
+    """Answer callback query"""
+    try:
+        data = {
+            'callback_query_id': callback_query_id,
+            'text': text[:200]
+        }
             self._make_telegram_request('answerCallbackQuery', data)
-        except Exception as e:
+    except Exception as e:
             logger.warning("Callback answer error", error=str(e))
-    
+
     def edit_message_text(self, chat_id: int, message_id: int, text: str, parse_mode: str = None) -> bool:
-        """Edit message text"""
-        try:
-            data = {
-                'chat_id': chat_id,
-                'message_id': message_id,
-                'text': str(text)[:4096],
-            }
-            if parse_mode:
-                data['parse_mode'] = parse_mode
+    """Edit message text"""
+    try:
+        data = {
+            'chat_id': chat_id,
+            'message_id': message_id,
+            'text': str(text)[:4096],
+        }
+        if parse_mode:
+            data['parse_mode'] = parse_mode
             return self._make_telegram_request('editMessageText', data) is not None
-        except Exception as e:
+    except Exception as e:
             logger.warning("Edit message error", error=str(e))
-            return False
-    
+        return False
+
     def get_user_session(self, user_id: int) -> UserSession:
         """Get or create user session"""
         session_data = self.data_store.get(f"user:{user_id}")
         if session_data:
             session = UserSession(**session_data)
-        else:
+                else:
             session = UserSession(user_id=user_id)
         
         session.last_activity = time.time()
@@ -536,64 +536,64 @@ class QuizBot:
         return session
     
     def handle_start_command(self, chat_id: int, user_id: int, user_name: str):
-        """Handle start command"""
-        try:
+    """Handle start command"""
+    try:
             session = self.get_user_session(user_id)
             session.state = "choosing_type"
-            
-            welcome_msg = (
-                f"👋 Hello {user_name}! 🌟\n\n"
+        
+        welcome_msg = (
+            f"👋 Hello {user_name}! 🌟\n\n"
                 "🎯 **Ultra-Reliable Quiz Bot** - Create MCQ quizzes instantly!\n\n"
-                "✨ **How it works:**\n"
-                "1️⃣ Choose quiz type below\n"
-                "2️⃣ Get JSON template\n" 
-                "3️⃣ Customize with your questions\n"
-                "4️⃣ Send back → Get instant quizzes! 🚀\n\n"
+            "✨ **How it works:**\n"
+            "1️⃣ Choose quiz type below\n"
+            "2️⃣ Get JSON template\n" 
+            "3️⃣ Customize with your questions\n"
+            "4️⃣ Send back → Get instant quizzes! 🚀\n\n"
                 "🔥 **Powered by Advanced Technology** - Zero Downtime!"
-            )
-            
-            keyboard = {
-                "inline_keyboard": [
-                    [{"text": "🔒 Anonymous Quiz (Forwardable)", "callback_data": "anon_true"}],
-                    [{"text": "👤 Non-Anonymous Quiz (Shows voters)", "callback_data": "anon_false"}]
-                ]
-            }
-            
+        )
+        
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🔒 Anonymous Quiz (Forwardable)", "callback_data": "anon_true"}],
+                [{"text": "👤 Non-Anonymous Quiz (Shows voters)", "callback_data": "anon_false"}]
+            ]
+        }
+        
             self.send_message(chat_id, welcome_msg, keyboard, parse_mode='Markdown')
             
-        except Exception as e:
+    except Exception as e:
             logger.error("Start command error", chat_id=chat_id, user_id=user_id, error=str(e))
             self.send_message(chat_id, f"Hello {user_name}! Use /start to create quizzes!")
     
     def handle_callback_query(self, callback_query: Dict):
-        """Handle button callbacks"""
-        try:
-            user_id = callback_query['from']['id']
-            chat_id = callback_query['message']['chat']['id']
-            message_id = callback_query['message']['message_id']
-            callback_data = callback_query['data']
-            
+    """Handle button callbacks"""
+    try:
+        user_id = callback_query['from']['id']
+        chat_id = callback_query['message']['chat']['id']
+        message_id = callback_query['message']['message_id']
+        callback_data = callback_query['data']
+        
             self.answer_callback_query(callback_query['id'])
-            
+        
             session = self.get_user_session(user_id)
-            is_anonymous = callback_data == "anon_true"
+        is_anonymous = callback_data == "anon_true"
             session.anonymous = is_anonymous
             session.state = "waiting_json"
             
             # CRITICAL: Save the session state immediately
             self.data_store.set(f"user:{user_id}", asdict(session), ttl=self.user_ttl)
-            
-            quiz_type = "🔒 Anonymous" if is_anonymous else "👤 Non-Anonymous"
-            
-            # Edit message
+        
+        quiz_type = "🔒 Anonymous" if is_anonymous else "👤 Non-Anonymous"
+        
+        # Edit message
             self.edit_message_text(
-                chat_id,
-                message_id,
-                f"✅ **{quiz_type} Quiz Selected!** 🎉\n\n⭐ **Template coming...** ⚡",
-                parse_mode='Markdown'
-            )
+            chat_id,
+            message_id,
+            f"✅ **{quiz_type} Quiz Selected!** 🎉\n\n⭐ **Template coming...** ⚡",
+            parse_mode='Markdown'
+        )
             
-            # Send template
+        # Send template
             template = '''{
   "all_q": [
     {
@@ -607,77 +607,91 @@ class QuizBot:
       "o": ["Mundane", "Inexpressible"],
       "c": 1,
       "e": "Inexpressible=indescribable,unspeakable"
+    },
+    {
+      "q": "What is the capital of Japan?",
+      "o": ["Tokyo", "Osaka", "Kyoto"],
+      "c": 0,
+      "e": "Tokyo is the capital and largest city of Japan"
+    },
+    {
+      "q": "Which programming language is known for web development?",
+      "o": ["JavaScript", "Python", "Java", "C++"],
+      "c": 0,
+      "e": "JavaScript is primarily used for front-end web development"
     }
   ]
 }'''
-            self.send_message(chat_id, "📋 **JSON Template:**", parse_mode='Markdown')
+            self.send_message(chat_id, "📋 **JSON Template (2-4 Options Supported):**", parse_mode='Markdown')
             self.send_message(chat_id, template)
-            
-            instruction_msg = (
-                f"✅ **{quiz_type} Selected!** 🎉\n\n"
-                "📝 **Next Steps:**\n"
-                "1️⃣ Copy the JSON template above\n"
-                "2️⃣ Give it to ChatGPT/AI 🤖\n"
-                "3️⃣ Ask to customize with your questions\n\n"
-                "🚀 **Send your customized JSON:** 👇⚡"
-            )
-            
+        
+        instruction_msg = (
+            f"✅ **{quiz_type} Selected!** 🎉\n\n"
+            "📝 **Next Steps:**\n"
+            "1️⃣ Copy the JSON template above\n"
+            "2️⃣ Give it to ChatGPT/AI 🤖\n"
+            "3️⃣ Ask to customize with your questions\n\n"
+                "🎯 **Quiz Options:** 2-4 options per question\n"
+                "📚 **Format:** `o` = options array, `c` = correct index (0,1,2,3)\n\n"
+            "🚀 **Send your customized JSON:** 👇⚡"
+        )
+        
             self.send_message(chat_id, instruction_msg, parse_mode='Markdown')
             
-        except Exception as e:
+    except Exception as e:
             logger.error("Callback handling error", error=str(e))
-    
+
     def handle_json_quiz(self, chat_id: int, user_id: int, json_text: str):
-        """Handle JSON quiz data"""
-        try:
+    """Handle JSON quiz data"""
+    try:
             session = self.get_user_session(user_id)
             logger.info(f"JSON quiz request from user {user_id}, state: {session.state}")
             if session.state != "waiting_json":
                 self.send_message(chat_id, "🔄 Please use /start first! ✨")
-                return
+            return
             
-            # Parse JSON
-            quiz_data = json.loads(json_text)
-            questions = quiz_data.get("all_q", [])
-            
-            if not questions:
+        # Parse JSON
+        quiz_data = json.loads(json_text)
+        questions = quiz_data.get("all_q", [])
+        
+        if not questions:
                 self.send_message(chat_id, "❌ No questions found! Use /template for format 📋")
-                return
-            
-            # Send processing message
+            return
+        
+        # Send processing message
             self.send_message(chat_id, "🔄 **Processing your quiz...** ⚡", parse_mode='Markdown')
-            
-            success_count = 0
+        
+        success_count = 0
             max_questions = min(len(questions), self.max_questions_per_quiz)
-            
-            for i, q_data in enumerate(questions[:max_questions]):
-                try:
-                    question = q_data.get("q", f"Question {i+1}")
-                    options = q_data.get("o", ["Option A", "Option B"])
-                    correct_id = q_data.get("c", 0)
-                    explanation = q_data.get("e", "")
-                    
-                    if len(options) >= 2:
+        
+        for i, q_data in enumerate(questions[:max_questions]):
+            try:
+                question = q_data.get("q", f"Question {i+1}")
+                options = q_data.get("o", ["Option A", "Option B"])
+                correct_id = q_data.get("c", 0)
+                explanation = q_data.get("e", "")
+                
+                if len(options) >= 2:
                         result = self.send_poll(
-                            chat_id, question, options, 
+                        chat_id, question, options, 
                             correct_id, explanation, session.anonymous
-                        )
-                        if result:
-                            success_count += 1
+                    )
+                    if result:
+                        success_count += 1
+                    
+                    # Rate limiting
+                    if i < max_questions - 1:
+                        time.sleep(0.05)
                         
-                        # Rate limiting
-                        if i < max_questions - 1:
-                            time.sleep(0.05)
-                            
-                except Exception as e:
+            except Exception as e:
                     logger.warning("Question processing error", question_num=i+1, error=str(e))
-                    continue
-            
+                continue
+                
             session.quiz_count += 1
             session.state = "choosing_type"
             
             quiz_type = "🔒 Anonymous" if session.anonymous else "👤 Non-Anonymous"
-            completion_msg = f"🎯 **{success_count} {quiz_type} quizzes sent!** ✅🎉"
+        completion_msg = f"🎯 **{success_count} {quiz_type} quizzes sent!** ✅🎉"
             self.send_message(chat_id, completion_msg, parse_mode='Markdown')
             self.send_message(chat_id, "🎉 **Create another?** Use /start! 🚀", parse_mode='Markdown')
             
@@ -708,8 +722,8 @@ class QuizBot:
                     "📚 **JSON Format:**\n"
                     "• `all_q` - Questions array\n"
                     "• `q` - Question text\n"
-                    "• `o` - Answer options (2-10 choices)\n"
-                    "• `c` - Correct answer (0=A, 1=B, etc.)\n"
+                    "• `o` - Answer options (2-4 choices)\n"
+                    "• `c` - Correct answer (0=first, 1=second, 2=third, 3=fourth)\n"
                     "• `e` - Explanation (optional)\n\n"
                     "🚀 **Quick Start:** Use /start!"
                 )
@@ -744,14 +758,28 @@ class QuizBot:
       "o": ["Mundane", "Inexpressible"],
       "c": 1,
       "e": "Inexpressible=indescribable,unspeakable"
+    },
+    {
+      "q": "What is the capital of Japan?",
+      "o": ["Tokyo", "Osaka", "Kyoto"],
+      "c": 0,
+      "e": "Tokyo is the capital and largest city of Japan"
+    },
+    {
+      "q": "Which programming language is known for web development?",
+      "o": ["JavaScript", "Python", "Java", "C++"],
+      "c": 0,
+      "e": "JavaScript is primarily used for front-end web development"
     }
   ]
 }'''
-                self.send_message(chat_id, "📋 **JSON Template:**", parse_mode='Markdown')
+                self.send_message(chat_id, "📋 **JSON Template (2-4 Options Supported):**", parse_mode='Markdown')
                 self.send_message(chat_id, template)
                 self.send_message(
                     chat_id,
-                    "💡 **Copy template → Give to AI → Customize → Send back!** 🤖✨",
+                    "💡 **Copy template → Give to AI → Customize → Send back!** 🤖✨\n\n"
+                    "🎯 **Options Support:** 2-4 options per question\n"
+                    "📚 **Correct Answer:** `c` = index (0=first, 1=second, 2=third, 3=fourth)",
                     parse_mode='Markdown'
                 )
             elif text.startswith('{') or '"all_q"' in text:
@@ -775,7 +803,7 @@ class QuizBot:
             elif 'callback_query' in update_data:
                 self.handle_callback_query(update_data['callback_query'])
                 
-        except Exception as e:
+    except Exception as e:
             logger.error("Update processing error", error=str(e))
             self.stats.errors += 1
     
@@ -976,37 +1004,37 @@ def create_app():
         except Exception as e:
             logger.error("Webhook error", error=str(e))
             return jsonify({"error": "Internal error"}), 500
-    
-    @app.route('/set_webhook', methods=['GET'])
-    def set_webhook():
-        """Set webhook URL"""
-        try:
-            data = {
+
+@app.route('/set_webhook', methods=['GET'])
+def set_webhook():
+    """Set webhook URL"""
+    try:
+        data = {
                 'url': bot.webhook_url,
-                'drop_pending_updates': True
-            }
+            'drop_pending_updates': True
+        }
             result = bot._make_telegram_request('setWebhook', data)
-            if result and result.get('ok'):
+        if result and result.get('ok'):
                 return f"✅ Webhook set successfully!<br>URL: {bot.webhook_url}<br>Status: {result.get('description', 'Success')}"
-            else:
-                return f"❌ Failed to set webhook: {result}"
-        except Exception as e:
-            return f"❌ Webhook error: {e}"
-    
-    @app.route('/webhook_info', methods=['GET'])
-    def webhook_info():
-        """Get webhook information"""
-        try:
+        else:
+            return f"❌ Failed to set webhook: {result}"
+    except Exception as e:
+        return f"❌ Webhook error: {e}"
+
+@app.route('/webhook_info', methods=['GET'])
+def webhook_info():
+    """Get webhook information"""
+    try:
             result = bot._make_telegram_request('getWebhookInfo')
-            if result and result.get('ok'):
-                return jsonify(result.get('result', {}))
-            else:
-                return jsonify({"error": "Failed to get webhook info", "result": result})
-        except Exception as e:
-            return jsonify({"error": str(e)})
-    
-    @app.route('/health', methods=['GET'])
-    def health_check():
+        if result and result.get('ok'):
+            return jsonify(result.get('result', {}))
+        else:
+            return jsonify({"error": "Failed to get webhook info", "result": result})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route('/health', methods=['GET'])
+def health_check():
         """Comprehensive health check endpoint"""
         try:
             health = bot.get_health_status()
@@ -1015,35 +1043,35 @@ def create_app():
         except Exception as e:
             logger.error("Health check error", error=str(e))
             return jsonify({"status": "error", "error": str(e)}), 500
-    
-    @app.route('/debug', methods=['GET'])
-    def debug():
-        """Debug information"""
-        try:
+
+@app.route('/debug', methods=['GET'])
+def debug():
+    """Debug information"""
+    try:
             me_result = bot._make_telegram_request('getMe')
-            debug_info = {
+        debug_info = {
                 "bot_token_configured": bool(bot.bot_token),
                 "webhook_url": bot.webhook_url,
                 "bot_state": bot.state.value,
                 "health_status": bot.get_health_status(),
-                "environment": "render",
+            "environment": "render",
                 "python_version": sys.version,
                 "persistent_storage": bot.data_store.persistent_enabled,
                 "memory_store_keys": list(bot.data_store.memory_store.keys())[:10]
-            }
+        }
+        
+        if me_result and me_result.get('ok'):
+            bot_info = me_result.get('result', {})
+            debug_info["bot_username"] = bot_info.get('username')
+            debug_info["bot_name"] = bot_info.get('first_name')
+            debug_info["bot_api_status"] = "✅ Working"
+        else:
+            debug_info["bot_api_status"] = f"❌ Error: {me_result}"
             
-            if me_result and me_result.get('ok'):
-                bot_info = me_result.get('result', {})
-                debug_info["bot_username"] = bot_info.get('username')
-                debug_info["bot_name"] = bot_info.get('first_name')
-                debug_info["bot_api_status"] = "✅ Working"
-            else:
-                debug_info["bot_api_status"] = f"❌ Error: {me_result}"
-                
-            return jsonify(debug_info)
-        except Exception as e:
-            return jsonify({"debug_error": str(e)})
-    
+        return jsonify(debug_info)
+    except Exception as e:
+        return jsonify({"debug_error": str(e)})
+
     @app.route('/metrics', methods=['GET'])
     def metrics():
         """Prometheus-style metrics"""
@@ -1074,17 +1102,17 @@ def create_app():
             return '\n'.join(metrics), 200, {'Content-Type': 'text/plain'}
         except Exception as e:
             return f"Error generating metrics: {e}", 500
-    
-    # Error handlers
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({"error": "Endpoint not found"}), 404
-    
-    @app.errorhandler(500)
-    def internal_error(error):
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"error": "Endpoint not found"}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
         logger.error("Internal server error", error=str(error))
-        return jsonify({"error": "Internal server error"}), 500
-    
+    return jsonify({"error": "Internal server error"}), 500
+
     return app
 
 # Create the Flask app
